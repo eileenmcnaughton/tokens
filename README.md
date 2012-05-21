@@ -2,3 +2,5 @@ tokens
 ======
 
 token collection for use w civitoken
+
+Use this with CiviToken - put the tokens you want in your custom_templates/tokens folder
