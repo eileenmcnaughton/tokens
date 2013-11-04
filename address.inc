@@ -3,6 +3,7 @@
 function address_civitoken_declare($token){
   return array(
     $token. '.address_block' => 'Address Block',
+    $token. '.address_block_text' => 'Address Block (Text)',
    );
 }
 
@@ -12,6 +13,7 @@ function address_civitoken_declare($token){
 */
 function address_civitoken_get($cid, &$value){
   $contact = getMissingAddressFields($cid, $value);
+  $value['address.address_block_text']= CRM_Utils_Address::format($contact);
   $value['address.address_block']=nl2br(CRM_Utils_Address::format($contact));
   return $value;
 }
