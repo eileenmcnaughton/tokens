@@ -39,28 +39,32 @@ function getMissingAddressFields($contactID, $contactDetails){
     $requiredFields,
     PREG_PATTERN_ORDER
   );
+
   $customMappings = array(
     'individual_prefix' => 'prefix_id',// abnormal handling in api/bao layer
     'address_name' => 'display_name',//address name not returned
   );
-  $requiredFields = array_diff_key(array_flip($requiredFields[1]), $contactDetails);
+  $fieldsToFill = array();
+  foreach ($requiredFields[1] as $requiredField) {
+    if(empty($contactDetails[$requiredField])) {
+      $fieldsToFill[] = $requiredField;
+    }
+  }
+
   foreach ($customMappings as $origField => $substituteField){
-    if(isset($requiredFields[$origField])){
+    if(isset($fieldsToFill[$origField])){
       //our anomalies :-( - not sure prefix works as a return on api
-      $requiredFields[$substituteField] = 1;
+      $fieldsToFill[$substituteField] = 1;
       unset($requiredFields[$origField]);
     }
   }
 
-  if(empty($requiredFields) ||
-    (count($requiredFields) == 1
-      &&  CRM_Utils_Array::value('contact_type', $contactDetails) == 'Individual'
-      && !empty($requiredFields['organization']))){
+  if(empty($fieldsToFill)){
     // there is no more info to be retrieved
     return $contactDetails;
   }
 
-  $contact = civicrm_api('contact','getsingle', array('version' =>3, 'id' => $contactID,'return' => array_keys($requiredFields)));
+  $contact = civicrm_api('contact','getsingle', array('version' =>3, 'id' => $contactID,'return' => $fieldsToFill));
   foreach ($customMappings as $origField => $substituteField){
     if(!empty($contact[$substituteField])){
       // individual prefix is an anomoly :-(
