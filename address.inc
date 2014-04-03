@@ -4,6 +4,7 @@ function address_civitoken_declare($token){
   return array(
     $token. '.address_block' => 'Address Block',
     $token. '.address_block_text' => 'Address Block (Text)',
+    $token . '.address_conditional_country' => 'Address Conditional Country',
    );
 }
 
@@ -13,6 +14,15 @@ function address_civitoken_declare($token){
 */
 function address_civitoken_get($cid, &$value){
   $contact = getMissingAddressFields($cid, $value);
+  $domain = civicrm_api3('domain', 'getsingle', array('current_domain' => 1));
+  if($contact['country_id'] == $domain['domain_address']['country_id']) {
+    //@todo - am of 2 minds as to whether to unset this as a matter of course or leave it up to
+    // people to add the 'address.address_conditional_country' into their mailing format
+    // unset($contact['country_id'], $contact['country']);
+  }
+  else{
+    $value['address.address_conditional_country'] = $contact['country'] = strtoupper($contact['country']);
+  }
   $value['address.address_block_text']= CRM_Utils_Address::format($contact);
   $value['address.address_block']=nl2br(CRM_Utils_Address::format($contact));
   return $value;
