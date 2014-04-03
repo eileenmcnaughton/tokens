@@ -43,13 +43,16 @@ function getMissingAddressFields($contactID, $contactDetails){
   $format = CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME,
       'mailing_format'
   );
-  $requiredFields = array();
+  $requiredFields = array('contact.country' => 1);
     preg_match_all('/(?<!\{|\\\\)\{contact.(\w+)\}(?!\})/',
     $format,
     $requiredFields,
     PREG_PATTERN_ORDER
   );
-
+  if(!in_array('country', $requiredFields[1])) {
+    //specifically retrieve country due to conditional country token
+    $requiredFields[1][] = 'country';
+  }
   $customMappings = array(
     'individual_prefix' => 'prefix_id',// abnormal handling in api/bao layer
     'address_name' => 'display_name',//address name not returned
