@@ -23,8 +23,10 @@ function address_civitoken_get($cid, &$value){
   else{
     $value['address.address_conditional_country'] = $contact['country'] = strtoupper($contact['country']);
   }
-  $value['address.address_block_text']= CRM_Utils_Address::format($contact);
-  $value['address.address_block']=nl2br(CRM_Utils_Address::format($contact));
+
+  $format = CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME, 'address_format');
+  $value['address.address_block_text']= CRM_Utils_Address::format($contact, $format);
+  $value['address.address_block']=nl2br(CRM_Utils_Address::format($contact, $format));
   return $value;
 }
 
@@ -55,7 +57,6 @@ function getMissingAddressFields($contactID, $contactDetails){
   }
   $customMappings = array(
     'individual_prefix' => 'prefix_id',// abnormal handling in api/bao layer
-    'address_name' => 'display_name',//address name not returned
   );
   $fieldsToFill = array();
   foreach ($requiredFields[1] as $requiredField) {
