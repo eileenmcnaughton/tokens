@@ -21,10 +21,12 @@ function address_civitoken_get($cid, &$value){
     unset($contact['country_id'], $contact['country']);
   }
   else{
-    $value['address.address_conditional_country'] = $contact['country'] = strtoupper($contact['country']);
+    $value['address.address_conditional_country'] = $contact['country'] = $contact['address.address_conditional_country'] = strtoupper($contact['country']);
   }
-
-  $format = CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME, 'address_format');
+  $format = CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME,
+    'mailing_format'
+  );
+  $format = str_replace('{address.address_conditional_country}', $contact['country'], $format);
   $value['address.address_block_text']= CRM_Utils_Address::format($contact, $format);
   $value['address.address_block']=nl2br(CRM_Utils_Address::format($contact, $format));
   return $value;
@@ -45,21 +47,28 @@ function getMissingAddressFields($contactID, $contactDetails){
   $format = CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME,
       'mailing_format'
   );
-  $requiredFields = array('contact.country' => 1);
-    preg_match_all('/(?<!\{|\\\\)\{contact.(\w+)\}(?!\})/',
-    $format,
-    $requiredFields,
-    PREG_PATTERN_ORDER
-  );
-  if(!in_array('country', $requiredFields[1])) {
-    //specifically retrieve country due to conditional country token
-    $requiredFields[1][] = 'country';
+  // country & display name are used even if their token is not - e.g organisation name
+  $requiredFields = array_merge(_extractTokens($format), array('country', 'display_name'));
+
+  if(in_array('addressee', $requiredFields)) {
+    static $addresseeFieldString;
+    static $addresseeFields = array();
+    if(empty($addresseeFieldString)) {
+
+      $optionValues = civicrm_api3('option_value', 'get', array('option_group_name' => 'addressee'));
+      foreach($optionValues['values'] as $optionValue) {
+        $addresseeFieldString .= $optionValue['name'];
+      }
+      $addresseeFields = _extractTokens($addresseeFieldString);
+      $requiredFields = array_merge($requiredFields, $addresseeFields);
+    }
   }
   $customMappings = array(
     'individual_prefix' => 'prefix_id',// abnormal handling in api/bao layer
+    'addressee' => 'addressee_display',
   );
   $fieldsToFill = array();
-  foreach ($requiredFields[1] as $requiredField) {
+  foreach ($requiredFields as $requiredField) {
     if(empty($contactDetails[$requiredField])) {
       $fieldsToFill[] = $requiredField;
     }
@@ -73,18 +82,40 @@ function getMissingAddressFields($contactID, $contactDetails){
     }
   }
 
+    // check if we need to retrieve fields to fill this token
   if(empty($fieldsToFill)){
     // there is no more info to be retrieved
     return $contactDetails;
   }
 
   $contact = civicrm_api('contact','getsingle', array('version' =>3, 'id' => $contactID,'return' => $fieldsToFill));
+  if(in_array('addressee', $requiredFields)) {
+    $addresseeFields = _extractTokens($contact['addressee']);
+    $notFilled = array_diff($addresseeFields, $fieldsToFill);
+    if(!empty($notFilled)) {
+      $contact = array_merge($contact, civicrm_api('contact','getsingle', array('version' =>3, 'id' => $contactID,'return' => $notFilled)));
+    }
+  }
   foreach ($customMappings as $origField => $substituteField){
     if(!empty($contact[$substituteField])){
       // individual prefix is an anomoly :-(
       $contact[$origField] = $contact[$substituteField];
-      unset($contact[$substituteField]);
     }
   }
   return array_merge($contact, $contactDetails);
+}
+
+/**
+ * regex the (contact) tokens out of a string
+ * @param unknown $string
+ * @return Ambigous <>
+ */
+function _extractTokens($string) {
+  $tokens = array();
+  preg_match_all('/(?<!\{|\\\\)\{contact.(\w+)\}(?!\})/',
+  $string,
+  $tokens,
+  PREG_PATTERN_ORDER
+  );
+  return $tokens[1];
 }
