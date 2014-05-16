@@ -7,6 +7,7 @@ function latestcurrentmembership_civitoken_declare($token){
     $token. '.end_date' => 'Latest Current Membership End Date',
     $token. '.start_date' => 'Latest Current Membership Start Date',
     $token. '.fee' => 'Latest Current Membership Fee',
+    $token. '.status' => 'Latest Current Membership Status',
     );
 }
 
@@ -28,6 +29,7 @@ function latestcurrentmembership_civitoken_get($cid, &$value, $context){
      $value['latestcurrentmembership.end_date']= date('d-m-Y', strtotime($membership['membership_end_date']));
      $value['latestcurrentmembership.start_date']= date('d-m-Y', strtotime($membership['membership_start_date']));
      $value['latestcurrentmembership.fee']= $membership['api.membership_type.getsingle']['minimum_fee'];
+     $value['latestcurrentmembership.status']= CRM_Member_PseudoConstant::membershipStatus($membership['status_id']);
    }
     return $value;
 
