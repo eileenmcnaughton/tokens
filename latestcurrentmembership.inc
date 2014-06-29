@@ -25,8 +25,8 @@ function latestcurrentmembership_civitoken_get($cid, &$value, $context){
 
    if(!CRM_Utils_Array::value('is_error',$membership)){
      $value['latestcurrentmembership.type'] = $membership['membership_name'];
-     $value['latestcurrentmembership.end_date']= date('d-m-Y', strtotime($membership['membership_end_date']));
-     $value['latestcurrentmembership.start_date']= date('d-m-Y', strtotime($membership['membership_start_date']));
+     $value['latestcurrentmembership.end_date']= date('d-m-Y', strtotime($membership['end_date']));
+     $value['latestcurrentmembership.start_date']= date('d-m-Y', strtotime($membership['start_date']));
      $value['latestcurrentmembership.fee']= $membership['api.membership_type.getsingle']['minimum_fee'];
    }
     return $value;
